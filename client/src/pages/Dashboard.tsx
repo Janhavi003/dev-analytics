@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import LanguageChart from "../components/LanguageChart";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -39,12 +40,39 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  return (
-    <div style={{ padding: "20px" }}>
-      <h1>Dashboard</h1>
+  // 📊 Language breakdown
+  const getLanguageData = (repos: any[]) => {
+    const langCount: Record<string, number> = {};
 
+    repos.forEach((repo) => {
+      if (repo.language) {
+        langCount[repo.language] =
+          (langCount[repo.language] || 0) + 1;
+      }
+    });
+
+    return Object.keys(langCount).map((lang) => ({
+      name: lang,
+      value: langCount[lang],
+    }));
+  };
+
+  // 🧠 Top repo insight
+  const getTopRepo = () => {
+    if (repos.length === 0) return null;
+
+    return repos.reduce((prev, current) =>
+      prev.stargazers_count > current.stargazers_count ? prev : current
+    );
+  };
+
+  return (
+    <div style={{ padding: "20px", fontFamily: "Arial" }}>
+      <h1>📊 Developer Dashboard</h1>
+
+      {/* 👤 User Info */}
       {user && (
-        <div style={{ marginBottom: "20px" }}>
+        <div style={{ marginBottom: "30px" }}>
           <img
             src={user.avatar_url}
             alt="avatar"
@@ -56,15 +84,25 @@ const Dashboard = () => {
         </div>
       )}
 
-      <h2>Repositories</h2>
-
+      {/* 📦 Repo List */}
+      <h2>📦 Repositories</h2>
       <ul>
         {repos.map((repo) => (
           <li key={repo.id}>
-            {repo.name} ⭐ {repo.stargazers_count}
+            <strong>{repo.name}</strong> ⭐ {repo.stargazers_count}
           </li>
         ))}
       </ul>
+
+      {/* 📊 Language Chart */}
+      <h2 style={{ marginTop: "40px" }}>📊 Language Breakdown</h2>
+      <LanguageChart data={getLanguageData(repos)} />
+
+      {/* 🧠 Insights */}
+      <h2 style={{ marginTop: "40px" }}>🧠 Insights</h2>
+      <p>
+        ⭐ Top Repo: <strong>{getTopRepo()?.name || "N/A"}</strong>
+      </p>
     </div>
   );
 };
