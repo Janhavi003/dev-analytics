@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import LanguageChart from "../components/LanguageChart";
+import CommitChart from "../components/CommitChart";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [repos, setRepos] = useState<any[]>([]);
+  const [commitData, setCommitData] = useState<any[]>([]);
 
   useEffect(() => {
     const token = new URLSearchParams(window.location.search).get("token");
@@ -32,6 +34,24 @@ const Dashboard = () => {
 
         setUser(userRes.data);
         setRepos(repoRes.data);
+
+        // 🔥 Fetch commits for first repo
+        if (repoRes.data.length > 0) {
+          const firstRepo = repoRes.data[0];
+
+          const commitRes = await axios.get(
+            "http://localhost:5000/auth/commits",
+            {
+              params: {
+                token,
+                owner: firstRepo.owner.login,
+                repo: firstRepo.name,
+              },
+            }
+          );
+
+          setCommitData(processCommits(commitRes.data));
+        }
       } catch (error) {
         console.error("Error fetching GitHub data", error);
       }
@@ -40,7 +60,7 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  // 📊 Language breakdown
+  // 📊 Language chart
   const getLanguageData = (repos: any[]) => {
     const langCount: Record<string, number> = {};
 
@@ -57,7 +77,22 @@ const Dashboard = () => {
     }));
   };
 
-  // 🧠 Top repo insight
+  // 📈 Commit processing
+  const processCommits = (commits: any[]) => {
+    const map: Record<string, number> = {};
+
+    commits.forEach((commit) => {
+      const date = commit.commit.author.date.split("T")[0];
+      map[date] = (map[date] || 0) + 1;
+    });
+
+    return Object.keys(map).map((date) => ({
+      date,
+      count: map[date],
+    }));
+  };
+
+  // 🧠 Insight
   const getTopRepo = () => {
     if (repos.length === 0) return null;
 
@@ -70,7 +105,7 @@ const Dashboard = () => {
     <div style={{ padding: "20px", fontFamily: "Arial" }}>
       <h1>📊 Developer Dashboard</h1>
 
-      {/* 👤 User Info */}
+      {/* User */}
       {user && (
         <div style={{ marginBottom: "30px" }}>
           <img
@@ -84,7 +119,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* 📦 Repo List */}
+      {/* Repos */}
       <h2>📦 Repositories</h2>
       <ul>
         {repos.map((repo) => (
@@ -94,11 +129,15 @@ const Dashboard = () => {
         ))}
       </ul>
 
-      {/* 📊 Language Chart */}
+      {/* Language */}
       <h2 style={{ marginTop: "40px" }}>📊 Language Breakdown</h2>
       <LanguageChart data={getLanguageData(repos)} />
 
-      {/* 🧠 Insights */}
+      {/* Commits */}
+      <h2 style={{ marginTop: "40px" }}>📈 Commit Activity</h2>
+      <CommitChart data={commitData} />
+
+      {/* Insights */}
       <h2 style={{ marginTop: "40px" }}>🧠 Insights</h2>
       <p>
         ⭐ Top Repo: <strong>{getTopRepo()?.name || "N/A"}</strong>
