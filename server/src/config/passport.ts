@@ -1,5 +1,5 @@
 import passport from "passport";
-import { Strategy as GitHubStrategy } from "passport-github2";
+import { Strategy as GitHubStrategy, Profile } from "passport-github2";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -11,8 +11,12 @@ passport.use(
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
       callbackURL: "http://localhost:5000/auth/github/callback",
     },
-    function (accessToken, refreshToken, profile, done) {
-      // You’ll store this later in DB
+    (
+      accessToken: string,
+      refreshToken: string,
+      profile: Profile,
+      done: Function
+    ) => {
       return done(null, { profile, accessToken });
     }
   )
