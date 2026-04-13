@@ -19,3 +19,21 @@ export const getUserRepos = async (accessToken: string) => {
 
   return res.data;
 };
+
+// 🔥 NEW: Fetch commits
+export const getRepoCommits = async (
+  accessToken: string,
+  owner: string,
+  repo: string
+) => {
+  const res = await axios.get(
+    `https://api.github.com/repos/${owner}/${repo}/commits`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  return res.data;
+};

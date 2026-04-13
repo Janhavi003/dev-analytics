@@ -35,7 +35,7 @@ const Dashboard = () => {
         setUser(userRes.data);
         setRepos(repoRes.data);
 
-        // 🔥 Fetch commits for first repo
+        // Fetch commits for first repo
         if (repoRes.data.length > 0) {
           const firstRepo = repoRes.data[0];
 
@@ -60,7 +60,7 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  // 📊 Language chart
+  // 📊 Language breakdown
   const getLanguageData = (repos: any[]) => {
     const langCount: Record<string, number> = {};
 
@@ -77,7 +77,7 @@ const Dashboard = () => {
     }));
   };
 
-  // 📈 Commit processing
+  // 📈 Process commits
   const processCommits = (commits: any[]) => {
     const map: Record<string, number> = {};
 
@@ -92,7 +92,8 @@ const Dashboard = () => {
     }));
   };
 
-  // 🧠 Insight
+  // 🧠 Insights
+
   const getTopRepo = () => {
     if (repos.length === 0) return null;
 
@@ -101,11 +102,56 @@ const Dashboard = () => {
     );
   };
 
+  const getTopLanguage = () => {
+    const langData = getLanguageData(repos);
+    if (langData.length === 0) return "N/A";
+
+    return langData.reduce((prev, curr) =>
+      prev.value > curr.value ? prev : curr
+    ).name;
+  };
+
+  const getRepoCount = () => repos.length;
+
+  const getMostActiveDay = () => {
+    if (commitData.length === 0) return "N/A";
+
+    const dayMap: Record<string, number> = {};
+
+    commitData.forEach((item) => {
+      const day = new Date(item.date).toLocaleDateString("en-US", {
+        weekday: "long",
+      });
+
+      dayMap[day] = (dayMap[day] || 0) + item.count;
+    });
+
+    return Object.keys(dayMap).reduce((a, b) =>
+      dayMap[a] > dayMap[b] ? a : b
+    );
+  };
+
+  const getWeekendCoding = () => {
+    let weekend = 0;
+    let weekday = 0;
+
+    commitData.forEach((item) => {
+      const day = new Date(item.date).getDay();
+
+      if (day === 0 || day === 6) weekend += item.count;
+      else weekday += item.count;
+    });
+
+    return weekend > weekday
+      ? "Weekend Coder 🧘"
+      : "Weekday Warrior 💼";
+  };
+
   return (
     <div style={{ padding: "20px", fontFamily: "Arial" }}>
       <h1>📊 Developer Dashboard</h1>
 
-      {/* User */}
+      {/* 👤 User Info */}
       {user && (
         <div style={{ marginBottom: "30px" }}>
           <img
@@ -119,7 +165,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Repos */}
+      {/* 📦 Repositories */}
       <h2>📦 Repositories</h2>
       <ul>
         {repos.map((repo) => (
@@ -129,19 +175,33 @@ const Dashboard = () => {
         ))}
       </ul>
 
-      {/* Language */}
+      {/* 📊 Language Chart */}
       <h2 style={{ marginTop: "40px" }}>📊 Language Breakdown</h2>
       <LanguageChart data={getLanguageData(repos)} />
 
-      {/* Commits */}
+      {/* 📈 Commit Activity */}
       <h2 style={{ marginTop: "40px" }}>📈 Commit Activity</h2>
       <CommitChart data={commitData} />
 
-      {/* Insights */}
-      <h2 style={{ marginTop: "40px" }}>🧠 Insights</h2>
-      <p>
-        ⭐ Top Repo: <strong>{getTopRepo()?.name || "N/A"}</strong>
-      </p>
+      {/* 🧠 Insights */}
+      <h2 style={{ marginTop: "40px" }}>🧠 Developer Insights</h2>
+      <ul>
+        <li>
+          ⭐ Top Repo: <strong>{getTopRepo()?.name || "N/A"}</strong>
+        </li>
+        <li>
+          💻 Favorite Language: <strong>{getTopLanguage()}</strong>
+        </li>
+        <li>
+          📦 Total Repos: <strong>{getRepoCount()}</strong>
+        </li>
+        <li>
+          📅 Most Active Day: <strong>{getMostActiveDay()}</strong>
+        </li>
+        <li>
+          ⚡ Coding Style: <strong>{getWeekendCoding()}</strong>
+        </li>
+      </ul>
     </div>
   );
 };
