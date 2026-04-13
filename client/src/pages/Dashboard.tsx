@@ -14,10 +14,12 @@ const Dashboard = () => {
 
     const fetchData = async () => {
       try {
+        // 👤 User
         const userRes = await axios.get("https://api.github.com/user", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        // 📦 Repos
         const repoRes = await axios.get(
           "https://api.github.com/user/repos",
           {
@@ -28,34 +30,46 @@ const Dashboard = () => {
         setUser(userRes.data);
         setRepos(repoRes.data);
 
-        if (repoRes.data.length > 0) {
-          const firstRepo = repoRes.data[0];
+        // 🔥 MULTI-REPO COMMITS (top 5 repos)
+        const selectedRepos = repoRes.data.slice(0, 5);
+        let allCommits: any[] = [];
 
-          const commitRes = await axios.get(
-            "http://localhost:5000/auth/commits",
-            {
-              params: {
-                token,
-                owner: firstRepo.owner.login,
-                repo: firstRepo.name,
-              },
-            }
-          );
+        for (const repo of selectedRepos) {
+          try {
+            const res = await axios.get(
+              "http://localhost:5000/auth/commits",
+              {
+                params: {
+                  token,
+                  owner: repo.owner.login,
+                  repo: repo.name,
+                },
+              }
+            );
 
-          setCommitData(processCommits(commitRes.data));
+            allCommits = [...allCommits, ...res.data];
+          } catch (err) {
+            console.log("Skipping repo:", repo.name);
+          }
         }
-      } catch (error) {
-        console.error(error);
+
+        setCommitData(processCommits(allCommits));
+      } catch (err) {
+        console.error(err);
       }
     };
 
     fetchData();
   }, []);
 
+  // 📊 Language breakdown
   const getLanguageData = (repos: any[]) => {
     const map: Record<string, number> = {};
+
     repos.forEach((r) => {
-      if (r.language) map[r.language] = (map[r.language] || 0) + 1;
+      if (r.language) {
+        map[r.language] = (map[r.language] || 0) + 1;
+      }
     });
 
     return Object.keys(map).map((key) => ({
@@ -64,21 +78,25 @@ const Dashboard = () => {
     }));
   };
 
+  // 📈 Commit processing
   const processCommits = (commits: any[]) => {
     const map: Record<string, number> = {};
+
     commits.forEach((c) => {
-      const d = c.commit.author.date.split("T")[0];
-      map[d] = (map[d] || 0) + 1;
+      const date = c.commit.author.date.split("T")[0];
+      map[date] = (map[date] || 0) + 1;
     });
 
-    return Object.keys(map).map((d) => ({
-      date: d,
-      count: map[d],
+    return Object.keys(map).map((date) => ({
+      date,
+      count: map[date],
     }));
   };
 
+  // 🧠 Insights
   const getTopRepo = () => {
     if (!repos.length) return null;
+
     return repos.reduce((a, b) =>
       a.stargazers_count > b.stargazers_count ? a : b
     );
@@ -87,6 +105,7 @@ const Dashboard = () => {
   const getTopLanguage = () => {
     const data = getLanguageData(repos);
     if (!data.length) return "N/A";
+
     return data.reduce((a, b) => (a.value > b.value ? a : b)).name;
   };
 
@@ -94,10 +113,12 @@ const Dashboard = () => {
     if (!commitData.length) return "N/A";
 
     const map: Record<string, number> = {};
+
     commitData.forEach((d) => {
       const day = new Date(d.date).toLocaleDateString("en-US", {
         weekday: "long",
       });
+
       map[day] = (map[day] || 0) + d.count;
     });
 
@@ -106,12 +127,29 @@ const Dashboard = () => {
     );
   };
 
+  const getWeekendCoding = () => {
+    let weekend = 0;
+    let weekday = 0;
+
+    commitData.forEach((d) => {
+      const day = new Date(d.date).getDay();
+      if (day === 0 || day === 6) weekend += d.count;
+      else weekday += d.count;
+    });
+
+    return weekend > weekday
+      ? "Weekend Coder 🧘"
+      : "Weekday Warrior 💼";
+  };
+
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       {/* Header */}
-      <h1 className="text-3xl font-bold mb-6">🚀 Developer Analytics</h1>
+      <h1 className="text-3xl font-bold mb-6">
+        🚀 Developer Analytics Dashboard
+      </h1>
 
-      {/* User Card */}
+      {/* 👤 User Card */}
       {user && (
         <div className="bg-white p-4 rounded-2xl shadow mb-6 flex items-center gap-4">
           <img
@@ -125,7 +163,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Stats Cards */}
+      {/* 📊 Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-4 rounded-xl shadow">
           <p className="text-gray-500">Repos</p>
@@ -152,17 +190,36 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Charts */}
+      {/* 📊 Charts */}
       <div className="grid md:grid-cols-2 gap-6">
         <div className="bg-white p-4 rounded-2xl shadow">
-          <h2 className="font-semibold mb-2">📊 Languages</h2>
+          <h2 className="font-semibold mb-2">📊 Language Breakdown</h2>
           <LanguageChart data={getLanguageData(repos)} />
         </div>
 
         <div className="bg-white p-4 rounded-2xl shadow">
-          <h2 className="font-semibold mb-2">📈 Commits</h2>
+          <h2 className="font-semibold mb-2">📈 Commit Activity</h2>
           <CommitChart data={commitData} />
         </div>
+      </div>
+
+      {/* 🧠 Insights */}
+      <div className="bg-white p-4 rounded-2xl shadow mt-6">
+        <h2 className="font-semibold mb-2">🧠 Developer Insights</h2>
+        <ul className="list-disc pl-5">
+          <li>
+            ⭐ Top Repo: <strong>{getTopRepo()?.name || "N/A"}</strong>
+          </li>
+          <li>
+            💻 Favorite Language: <strong>{getTopLanguage()}</strong>
+          </li>
+          <li>
+            📅 Most Active Day: <strong>{getMostActiveDay()}</strong>
+          </li>
+          <li>
+            ⚡ Coding Style: <strong>{getWeekendCoding()}</strong>
+          </li>
+        </ul>
       </div>
     </div>
   );
