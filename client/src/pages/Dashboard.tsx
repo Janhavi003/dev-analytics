@@ -3,14 +3,43 @@ import axios from "axios";
 import LanguageChart from "../components/LanguageChart";
 import CommitChart from "../components/CommitChart";
 
+interface GitHubUser {
+  login: string;
+  avatar_url: string;
+  name: string;
+  // Add other fields as needed
+}
+
+interface GitHubRepo {
+  name: string;
+  owner: { login: string };
+  language: string | null;
+  stargazers_count: number;
+}
+
+interface Commit {
+  commit: {
+    author: {
+      date: string;
+    };
+  };
+}
+
+interface ProcessedCommit {
+  date: string;
+  count: number;
+}
+
 const Dashboard = () => {
-  const [user, setUser] = useState<any>(null);
-  const [repos, setRepos] = useState<any[]>([]);
-  const [commitData, setCommitData] = useState<any[]>([]);
+  const [user, setUser] = useState<GitHubUser | null>(null);
+  const [repos, setRepos] = useState<GitHubRepo[]>([]);
+  const [commitData, setCommitData] = useState<ProcessedCommit[]>([]);
+  const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
     const token = new URLSearchParams(window.location.search).get("token");
     if (!token) return;
+    setHasToken(true);
 
     const fetchData = async () => {
       try {
@@ -30,7 +59,7 @@ const Dashboard = () => {
 
         // 🔥 Multi-repo commits
         const selectedRepos = repoRes.data.slice(0, 5);
-        let allCommits: any[] = [];
+        let allCommits: Commit[] = [];
 
         for (const repo of selectedRepos) {
           try {
@@ -46,14 +75,14 @@ const Dashboard = () => {
             );
 
             allCommits = [...allCommits, ...res.data];
-          } catch (err) {
+          } catch {
             console.log("Skipping repo:", repo.name);
           }
         }
 
         setCommitData(processCommits(allCommits));
-      } catch (err) {
-        console.error(err);
+      } catch {
+        console.error("Error fetching data");
       }
     };
 
@@ -61,7 +90,7 @@ const Dashboard = () => {
   }, []);
 
   // 📊 Language breakdown
-  const getLanguageData = (repos: any[]) => {
+  const getLanguageData = (repos: GitHubRepo[]) => {
     const map: Record<string, number> = {};
     repos.forEach((r) => {
       if (r.language) {
@@ -76,7 +105,7 @@ const Dashboard = () => {
   };
 
   // 📈 Commit processing
-  const processCommits = (commits: any[]) => {
+  const processCommits = (commits: Commit[]) => {
     const map: Record<string, number> = {};
     commits.forEach((c) => {
       const date = c.commit.author.date.split("T")[0];
@@ -119,21 +148,6 @@ const Dashboard = () => {
     );
   };
 
-  const getWeekendCoding = () => {
-    let weekend = 0;
-    let weekday = 0;
-
-    commitData.forEach((d) => {
-      const day = new Date(d.date).getDay();
-      if (day === 0 || day === 6) weekend += d.count;
-      else weekday += d.count;
-    });
-
-    return weekend > weekday
-      ? "Weekend Coder 🧘"
-      : "Weekday Warrior 💼";
-  };
-
   // 🤖 AI Insights
 
   const getCodingTime = () => {
@@ -151,9 +165,9 @@ const Dashboard = () => {
       else night++;
     });
 
-    if (night > morning && night > afternoon) return "Night Owl 🌙";
-    if (morning > afternoon) return "Morning Coder ☀️";
-    return "Afternoon Builder ⚡";
+    if (night > morning && night > afternoon) return "Evenings";
+    if (morning > afternoon) return "Mornings";
+    return "Afternoons";
   };
 
   const getConsistency = () => {
@@ -161,9 +175,9 @@ const Dashboard = () => {
 
     const activeDays = commitData.length;
 
-    if (activeDays > 20) return "Very Consistent 🔥";
-    if (activeDays > 10) return "Consistent 👍";
-    return "Getting Started 🚀";
+    if (activeDays > 20) return "Very consistent";
+    if (activeDays > 10) return "Consistent";
+    return "Getting started";
   };
 
   const getCodingFocus = () => {
@@ -174,93 +188,160 @@ const Dashboard = () => {
     let backend = 0;
 
     repos.forEach((repo) => {
-      if (frontendLangs.includes(repo.language)) frontend++;
-      if (backendLangs.includes(repo.language)) backend++;
+      if (repo.language && frontendLangs.includes(repo.language)) frontend++;
+      if (repo.language && backendLangs.includes(repo.language)) backend++;
     });
 
-    if (frontend > backend) return "Frontend Focused 🎨";
-    if (backend > frontend) return "Backend Focused ⚙️";
-    return "Full Stack Explorer 🚀";
+    if (frontend > backend) return "Frontend";
+    if (backend > frontend) return "Backend";
+    return "Full stack";
   };
 
   const getActivityLevel = () => {
     const total = commitData.reduce((sum, d) => sum + d.count, 0);
 
-    if (total > 200) return "High Activity 🚀";
-    if (total > 50) return "Moderate Activity ⚡";
-    return "Low Activity 🌱";
+    if (total > 200) return "High";
+    if (total > 50) return "Moderate";
+    return "Low";
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      {/* Header */}
-      <h1 className="text-3xl font-bold mb-6">
-        🚀 Developer Analytics Dashboard
-      </h1>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="mx-auto w-full max-w-6xl px-6 py-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="text-sm text-slate-400">Dev Analytics</div>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+              Developer dashboard
+            </h1>
+          </div>
+          <div className="flex gap-3">
+            <a
+              href="/"
+              className="inline-flex items-center justify-center rounded-xl bg-white/5 px-4 py-2 text-sm font-semibold text-slate-100 ring-1 ring-white/10 transition hover:bg-white/10"
+            >
+              Home
+            </a>
+            <a
+              href="/login"
+              className="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 shadow-sm shadow-emerald-400/15 transition hover:bg-emerald-300"
+            >
+              Connect GitHub
+            </a>
+          </div>
+        </div>
 
       {/* User */}
       {user && (
-        <div className="bg-white p-4 rounded-2xl shadow mb-6 flex items-center gap-4">
+        <div className="mt-8 flex items-center gap-4 rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
           <img
             src={user.avatar_url}
-            className="w-16 h-16 rounded-full"
+            alt={`${user.login} avatar`}
+            className="h-14 w-14 rounded-2xl ring-1 ring-white/10"
           />
           <div>
-            <h2 className="text-xl font-semibold">{user.name}</h2>
-            <p className="text-gray-500">@{user.login}</p>
+            <h2 className="text-lg font-semibold leading-tight">
+              {user.name || user.login}
+            </h2>
+            <p className="text-sm text-slate-400">@{user.login}</p>
+          </div>
+        </div>
+      )}
+
+      {!hasToken && (
+        <div className="mt-8 rounded-2xl bg-white/5 p-6 ring-1 ring-white/10">
+          <div className="text-base font-semibold">Connect GitHub to begin</div>
+          <div className="mt-2 max-w-2xl text-sm text-slate-400">
+            Your dashboard URL needs a token query param from the GitHub OAuth
+            flow. Use the button above to sign in.
           </div>
         </div>
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-xl shadow">
-          <p className="text-gray-500">Repos</p>
-          <h2 className="text-xl font-bold">{repos.length}</h2>
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
+          <div className="text-xs font-medium text-slate-400">Repositories</div>
+          <div className="mt-2 text-2xl font-semibold tracking-tight">
+            {repos.length}
+          </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl shadow">
-          <p className="text-gray-500">Top Language</p>
-          <h2 className="text-xl font-bold">{getTopLanguage()}</h2>
+        <div className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
+          <div className="text-xs font-medium text-slate-400">Top language</div>
+          <div className="mt-2 text-2xl font-semibold tracking-tight">
+            {getTopLanguage()}
+          </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl shadow">
-          <p className="text-gray-500">Top Repo</p>
-          <h2 className="text-sm font-bold">
+        <div className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
+          <div className="text-xs font-medium text-slate-400">Top repo</div>
+          <div className="mt-2 truncate text-base font-semibold tracking-tight">
             {getTopRepo()?.name || "N/A"}
-          </h2>
+          </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl shadow">
-          <p className="text-gray-500">Active Day</p>
-          <h2 className="text-sm font-bold">
+        <div className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
+          <div className="text-xs font-medium text-slate-400">Most active day</div>
+          <div className="mt-2 text-base font-semibold tracking-tight">
             {getMostActiveDay()}
-          </h2>
+          </div>
         </div>
       </div>
 
       {/* Charts */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white p-4 rounded-2xl shadow">
-          <h2 className="font-semibold mb-2">📊 Language Breakdown</h2>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
+          <h2 className="text-sm font-semibold text-slate-100">
+            Language breakdown
+          </h2>
+          <div className="mt-1 text-xs text-slate-400">
+            Based on primary language per repo
+          </div>
           <LanguageChart data={getLanguageData(repos)} />
         </div>
 
-        <div className="bg-white p-4 rounded-2xl shadow">
-          <h2 className="font-semibold mb-2">📈 Commit Activity</h2>
+        <div className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
+          <h2 className="text-sm font-semibold text-slate-100">
+            Commit activity
+          </h2>
+          <div className="mt-1 text-xs text-slate-400">
+            Aggregated across selected repositories
+          </div>
           <CommitChart data={commitData} />
         </div>
       </div>
 
       {/* Insights */}
-      <div className="bg-white p-4 rounded-2xl shadow mt-6">
-        <h2 className="font-semibold mb-2">🤖 AI Insights</h2>
-        <ul className="list-disc pl-5 space-y-1">
-          <li>🕒 Coding Style: <strong>{getCodingTime()}</strong></li>
-          <li>📈 Consistency: <strong>{getConsistency()}</strong></li>
-          <li>🧠 Focus Area: <strong>{getCodingFocus()}</strong></li>
-          <li>⚡ Activity Level: <strong>{getActivityLevel()}</strong></li>
-        </ul>
+      <div className="mt-6 rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
+        <h2 className="text-sm font-semibold text-slate-100">Insights</h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl bg-slate-950/40 p-4 ring-1 ring-white/10">
+            <div className="text-xs font-medium text-slate-400">
+              Preferred time
+            </div>
+            <div className="mt-2 text-base font-semibold">{getCodingTime()}</div>
+          </div>
+          <div className="rounded-xl bg-slate-950/40 p-4 ring-1 ring-white/10">
+            <div className="text-xs font-medium text-slate-400">Consistency</div>
+            <div className="mt-2 text-base font-semibold">
+              {getConsistency()}
+            </div>
+          </div>
+          <div className="rounded-xl bg-slate-950/40 p-4 ring-1 ring-white/10">
+            <div className="text-xs font-medium text-slate-400">Focus</div>
+            <div className="mt-2 text-base font-semibold">{getCodingFocus()}</div>
+          </div>
+          <div className="rounded-xl bg-slate-950/40 p-4 ring-1 ring-white/10">
+            <div className="text-xs font-medium text-slate-400">
+              Activity level
+            </div>
+            <div className="mt-2 text-base font-semibold">
+              {getActivityLevel()}
+            </div>
+          </div>
+        </div>
+      </div>
       </div>
     </div>
   );
