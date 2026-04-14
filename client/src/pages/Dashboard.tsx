@@ -35,30 +35,48 @@ const Dashboard = () => {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [commitData, setCommitData] = useState<ProcessedCommit[]>([]);
   const [hasToken, setHasToken] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get("token");
-    if (!token) return;
+    const tokenFromUrl = new URLSearchParams(window.location.search).get("token");
+    if (!tokenFromUrl) return;
     setHasToken(true);
+    setToken(tokenFromUrl);
 
     const fetchData = async () => {
       try {
+        const fetchAllRepos = async (): Promise<GitHubRepo[]> => {
+          const perPage = 100;
+          let page = 1;
+          let all: GitHubRepo[] = [];
+
+          while (true) {
+            const res = await axios.get<GitHubRepo[]>(
+              "https://api.github.com/user/repos",
+              {
+                headers: { Authorization: `Bearer ${tokenFromUrl}` },
+                params: { per_page: perPage, page, sort: "updated" },
+              }
+            );
+
+            all = all.concat(res.data);
+            if (res.data.length < perPage) break;
+            page += 1;
+          }
+
+          return all;
+        };
+
         const userRes = await axios.get("https://api.github.com/user", {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${tokenFromUrl}` },
         });
 
-        const repoRes = await axios.get(
-          "https://api.github.com/user/repos",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
         setUser(userRes.data);
-        setRepos(repoRes.data);
+        const allRepos = await fetchAllRepos();
+        setRepos(allRepos);
 
         // 🔥 Multi-repo commits
-        const selectedRepos = repoRes.data.slice(0, 5);
+        const selectedRepos = allRepos.slice(0, 5);
         let allCommits: Commit[] = [];
 
         for (const repo of selectedRepos) {
@@ -67,7 +85,7 @@ const Dashboard = () => {
               "http://localhost:5000/auth/commits",
               {
                 params: {
-                  token,
+                  token: tokenFromUrl,
                   owner: repo.owner.login,
                   repo: repo.name,
                 },
@@ -260,12 +278,22 @@ const Dashboard = () => {
 
       {/* Stats */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
+        <a
+          href={
+            token ? `/repos?token=${encodeURIComponent(token)}` : "/repos"
+          }
+          className="group rounded-2xl bg-white/5 p-5 ring-1 ring-white/10 transition hover:bg-white/10"
+        >
           <div className="text-xs font-medium text-slate-400">Repositories</div>
-          <div className="mt-2 text-2xl font-semibold tracking-tight">
-            {repos.length}
+          <div className="mt-2 flex items-baseline justify-between gap-3">
+            <div className="text-2xl font-semibold tracking-tight">
+              {repos.length}
+            </div>
+            <div className="text-xs font-medium text-slate-400 opacity-0 transition group-hover:opacity-100">
+              View list
+            </div>
           </div>
-        </div>
+        </a>
 
         <div className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
           <div className="text-xs font-medium text-slate-400">Top language</div>
