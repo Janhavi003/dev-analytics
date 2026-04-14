@@ -14,12 +14,10 @@ const Dashboard = () => {
 
     const fetchData = async () => {
       try {
-        // 👤 User
         const userRes = await axios.get("https://api.github.com/user", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // 📦 Repos
         const repoRes = await axios.get(
           "https://api.github.com/user/repos",
           {
@@ -30,7 +28,7 @@ const Dashboard = () => {
         setUser(userRes.data);
         setRepos(repoRes.data);
 
-        // 🔥 MULTI-REPO COMMITS (top 5 repos)
+        // 🔥 Multi-repo commits
         const selectedRepos = repoRes.data.slice(0, 5);
         let allCommits: any[] = [];
 
@@ -65,7 +63,6 @@ const Dashboard = () => {
   // 📊 Language breakdown
   const getLanguageData = (repos: any[]) => {
     const map: Record<string, number> = {};
-
     repos.forEach((r) => {
       if (r.language) {
         map[r.language] = (map[r.language] || 0) + 1;
@@ -81,7 +78,6 @@ const Dashboard = () => {
   // 📈 Commit processing
   const processCommits = (commits: any[]) => {
     const map: Record<string, number> = {};
-
     commits.forEach((c) => {
       const date = c.commit.author.date.split("T")[0];
       map[date] = (map[date] || 0) + 1;
@@ -93,10 +89,9 @@ const Dashboard = () => {
     }));
   };
 
-  // 🧠 Insights
+  // 🧠 Basic insights
   const getTopRepo = () => {
     if (!repos.length) return null;
-
     return repos.reduce((a, b) =>
       a.stargazers_count > b.stargazers_count ? a : b
     );
@@ -105,7 +100,6 @@ const Dashboard = () => {
   const getTopLanguage = () => {
     const data = getLanguageData(repos);
     if (!data.length) return "N/A";
-
     return data.reduce((a, b) => (a.value > b.value ? a : b)).name;
   };
 
@@ -113,12 +107,10 @@ const Dashboard = () => {
     if (!commitData.length) return "N/A";
 
     const map: Record<string, number> = {};
-
     commitData.forEach((d) => {
       const day = new Date(d.date).toLocaleDateString("en-US", {
         weekday: "long",
       });
-
       map[day] = (map[day] || 0) + d.count;
     });
 
@@ -142,6 +134,63 @@ const Dashboard = () => {
       : "Weekday Warrior 💼";
   };
 
+  // 🤖 AI Insights
+
+  const getCodingTime = () => {
+    if (!commitData.length) return "N/A";
+
+    let morning = 0;
+    let afternoon = 0;
+    let night = 0;
+
+    commitData.forEach((d) => {
+      const hour = new Date(d.date).getHours();
+
+      if (hour < 12) morning++;
+      else if (hour < 18) afternoon++;
+      else night++;
+    });
+
+    if (night > morning && night > afternoon) return "Night Owl 🌙";
+    if (morning > afternoon) return "Morning Coder ☀️";
+    return "Afternoon Builder ⚡";
+  };
+
+  const getConsistency = () => {
+    if (!commitData.length) return "Low";
+
+    const activeDays = commitData.length;
+
+    if (activeDays > 20) return "Very Consistent 🔥";
+    if (activeDays > 10) return "Consistent 👍";
+    return "Getting Started 🚀";
+  };
+
+  const getCodingFocus = () => {
+    const frontendLangs = ["JavaScript", "TypeScript", "HTML", "CSS"];
+    const backendLangs = ["Python", "Java", "Go"];
+
+    let frontend = 0;
+    let backend = 0;
+
+    repos.forEach((repo) => {
+      if (frontendLangs.includes(repo.language)) frontend++;
+      if (backendLangs.includes(repo.language)) backend++;
+    });
+
+    if (frontend > backend) return "Frontend Focused 🎨";
+    if (backend > frontend) return "Backend Focused ⚙️";
+    return "Full Stack Explorer 🚀";
+  };
+
+  const getActivityLevel = () => {
+    const total = commitData.reduce((sum, d) => sum + d.count, 0);
+
+    if (total > 200) return "High Activity 🚀";
+    if (total > 50) return "Moderate Activity ⚡";
+    return "Low Activity 🌱";
+  };
+
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       {/* Header */}
@@ -149,7 +198,7 @@ const Dashboard = () => {
         🚀 Developer Analytics Dashboard
       </h1>
 
-      {/* 👤 User Card */}
+      {/* User */}
       {user && (
         <div className="bg-white p-4 rounded-2xl shadow mb-6 flex items-center gap-4">
           <img
@@ -163,7 +212,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* 📊 Stats Cards */}
+      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-4 rounded-xl shadow">
           <p className="text-gray-500">Repos</p>
@@ -190,7 +239,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 📊 Charts */}
+      {/* Charts */}
       <div className="grid md:grid-cols-2 gap-6">
         <div className="bg-white p-4 rounded-2xl shadow">
           <h2 className="font-semibold mb-2">📊 Language Breakdown</h2>
@@ -203,22 +252,14 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 🧠 Insights */}
+      {/* Insights */}
       <div className="bg-white p-4 rounded-2xl shadow mt-6">
-        <h2 className="font-semibold mb-2">🧠 Developer Insights</h2>
-        <ul className="list-disc pl-5">
-          <li>
-            ⭐ Top Repo: <strong>{getTopRepo()?.name || "N/A"}</strong>
-          </li>
-          <li>
-            💻 Favorite Language: <strong>{getTopLanguage()}</strong>
-          </li>
-          <li>
-            📅 Most Active Day: <strong>{getMostActiveDay()}</strong>
-          </li>
-          <li>
-            ⚡ Coding Style: <strong>{getWeekendCoding()}</strong>
-          </li>
+        <h2 className="font-semibold mb-2">🤖 AI Insights</h2>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>🕒 Coding Style: <strong>{getCodingTime()}</strong></li>
+          <li>📈 Consistency: <strong>{getConsistency()}</strong></li>
+          <li>🧠 Focus Area: <strong>{getCodingFocus()}</strong></li>
+          <li>⚡ Activity Level: <strong>{getActivityLevel()}</strong></li>
         </ul>
       </div>
     </div>
