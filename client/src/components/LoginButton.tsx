@@ -2,7 +2,7 @@ import { useState } from "react";
 
 const LoginButton = () => {
   const apiBaseUrl =
-    (import.meta as any).env?.VITE_API_URL?.toString?.() || "http://localhost:5000";
+    (import.meta as any).env?.VITE_API_URL?.toString?.() || "https://dev-analytics-vz5q.onrender.com";
 
   const [isLoading, setIsLoading] = useState(false);
 
