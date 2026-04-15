@@ -23,7 +23,7 @@ router.get(
       const { accessToken } = req.user as any;
 
       // redirect to frontend with token
-      res.redirect(`https://dev-analytics-vz5q.onrender.com/dashboard?token=${accessToken}`);
+      res.redirect(`http://localhost:5173/dashboard?token=${accessToken}`);
     } catch (error) {
       res.status(500).json({ error: "Auth failed" });
     }
