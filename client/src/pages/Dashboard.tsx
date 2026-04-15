@@ -82,7 +82,7 @@ const Dashboard = () => {
         for (const repo of selectedRepos) {
           try {
             const res = await axios.get(
-              "http://localhost:5000/auth/commits",
+              "https://dev-analytics-vz5q.onrender.com/auth/commits",
               {
                 params: {
                   token: tokenFromUrl,
