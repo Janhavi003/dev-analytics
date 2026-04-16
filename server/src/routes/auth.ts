@@ -23,7 +23,7 @@ router.get(
       const { accessToken } = req.user as any;
 
       // redirect to frontend with token
-      res.redirect(`https://github-dev-analytics.vercel.app/dashboard?token=${accessToken}`);
+      res.redirect(`https://github-dev-analytics-alpha.vercel.app/dashboard?token=${accessToken}`);
     } catch (error) {
       res.status(500).json({ error: "Auth failed" });
     }
