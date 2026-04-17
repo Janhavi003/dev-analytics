@@ -26,11 +26,6 @@ const Login = () => {
             <div className="mt-6">
               <LoginButton />
             </div>
-
-            <div className="mt-4 text-xs text-white/50">
-              Tip: set <span className="font-mono">VITE_API_URL</span> if your
-              server isn’t on localhost.
-            </div>
           </div>
         </div>
       </div>
